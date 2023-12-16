@@ -15,7 +15,8 @@ typedef enum {
 	PORT = 1,
 	RESISTOR = 2,
 	INDUCTOR = 3,
-	CAPACITOR = 4
+	CAPACITOR = 4,
+	UNKNOWN_TYPE = 5
 }ComponentType;
 
 typedef enum {
@@ -27,6 +28,8 @@ typedef enum {
 
 struct CircuitComponent
 {
+	CircuitComponent();
+	
 	ComponentType type;
 	std::string identifier;
 	int firstNode;
@@ -34,12 +37,29 @@ struct CircuitComponent
 	double long value;
 };
 
+struct BridgeFinderHelper {
+
+	BridgeFinderHelper(int FirstNode, int MiddleNode, int LastNode, 
+		std::complex<double long> FirstImpedance, 
+		std::complex<double long> SecondImpedance);
+
+	int firstNode;
+	int middleNode;
+	int lastNode;
+	std::complex<double long> firstImpedance;
+	std::complex<double long> secondImpedance;
+	};
+
 class ElectricalGrid
 {
 public:
 	bool FileParser(std::string file);
 	bool NodeConstructor();
 	bool SimplifyConnections();
+
+	bool BridgeLookup();
+
+	void DeleteDuplicateBranches(std::vector<BridgeFinderHelper>& possibleBridges);
 
 private:
 	bool ReadFileLine(std::string line, int lineNumber);
@@ -51,14 +71,21 @@ private:
 
 	bool StarMeshTransform(std::map<int, std::map<int, std::complex<double long>>>::iterator node);
 
+	void CalculateNewDeltaResistances(std::complex<long double>  newResistanceValues[3], std::complex<long double>  resistances[3]);
+
+	std::complex<double long> CalculateStarMeshResistance(std::complex<double long> i, std::complex<double long> j, std::complex<double long> k);
+
 	/// <summary>
 	/// Helper function to delete old node connections
 	/// </summary>
-	/// <param name="First node which will get new connection"></param>
-	/// <param name="Node that replaced the old node connection"></param>
-	/// <param name="">Old node to be replaced with new connection</param>
-	/// <param name="Value of the new connection"></param>
-	void DeleteNode(int i, int j, int k, std::complex<double long>& addition);
+	/// <param i="First node which will get new connection"></param>
+	/// <param j="Node that replaced the old node connection"></param>
+	/// <param k="">Old node to be replaced with new connection</param>
+	/// <param value="Value of the new connection"></param>
+	void DeleteNode(int i, int j, int k, std::complex<double long>& value);
+
+	void DeleteNodeHelper(int i, int j, int k, std::complex<double long>& value);
+
 
 	/// <summary>
 	/// Helper function for deleting left side whitespace

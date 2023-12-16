@@ -3,13 +3,15 @@
 int main() {
     ElectricalGrid newGrid;
 
-    newGrid.FileParser("C:\\Users\\diego\\OneDrive\\Escritorio\\bridge.txt");
+    newGrid.FileParser("C:\\Users\\diego\\OneDrive\\Escritorio\\r_cube.txt");
 
     newGrid.NodeConstructor();
 
     newGrid.SimplifyConnections();
 
     newGrid.SimplifyConnections();
+
+    newGrid.BridgeLookup();
 
 }
 
@@ -140,7 +142,39 @@ std::complex<double long> ElectricalGrid::CalculateComponentValue(CircuitCompone
 
 bool ElectricalGrid::StarMeshTransform(std::map<int, std::map<int, std::complex<double long>>>::iterator node)
 {
-    return false;
+    int count = 0;
+    int connectedNodes[3];
+    std::complex<double long> resistances[3];
+    std::complex<double long> newResistanceValues[3];
+    for (auto it = node->second.begin(); it != node->second.end(); it++) {
+        connectedNodes[count] = it->first;
+        resistances[count++] = it->second;
+    }
+
+    CalculateNewDeltaResistances(newResistanceValues, resistances);
+
+    DeleteNodeHelper(connectedNodes[1], connectedNodes[2], node->first, newResistanceValues[0]);
+    DeleteNodeHelper(connectedNodes[0], connectedNodes[2], node->first, newResistanceValues[1]);
+    DeleteNodeHelper(connectedNodes[1], connectedNodes[0], node->first, newResistanceValues[2]);
+
+
+
+    return true;
+}
+
+void ElectricalGrid::CalculateNewDeltaResistances(std::complex<long double>  newResistanceValues[3], std::complex<long double>  resistances[3])
+{
+    newResistanceValues[0] = CalculateStarMeshResistance(resistances[0], resistances[1], resistances[2]);
+    newResistanceValues[1] = CalculateStarMeshResistance(resistances[1], resistances[2], resistances[0]);
+    newResistanceValues[2] = CalculateStarMeshResistance(resistances[2], resistances[0], resistances[1]);
+}
+
+std::complex<double long> ElectricalGrid::CalculateStarMeshResistance(std::complex<double long> i, std::complex<double long> j, std::complex<double long> k)
+{
+    std::complex<double long> result = (i * j) + (i * k) + (j * k);
+    result = result / i;
+
+    return result;
 }
 
 bool ElectricalGrid::SimplifyConnections()
@@ -170,7 +204,9 @@ bool ElectricalGrid::SimplifyConnections()
         }
         else if (it->second.size() == 3)
         {
-
+            StarMeshTransform(it);
+            it = nodes.erase(it);
+            it = nodes.begin();
         }
         else {
             it++;
@@ -195,6 +231,52 @@ void ElectricalGrid::DeleteNode(int i, int j, int k, std::complex<double long>& 
     replace->second.erase(k);
 }
 
+void ElectricalGrid::DeleteNodeHelper(int i, int j, int k, std::complex<double long>& value)
+{
+    DeleteNode(i, j, k, value);
+    DeleteNode(j, i, k, value);
+}
+
+bool ElectricalGrid::BridgeLookup()
+{
+    std::vector<BridgeFinderHelper> possibleBridges;
+    for (auto it = nodes.begin(); it != nodes.end(); it++)
+    {
+        for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++)
+        {
+            auto subNode = nodes.find(it2->first);
+            for (auto subNodeIterator = subNode->second.begin(); subNodeIterator != subNode->second.end(); subNodeIterator++)
+            {
+                if (it->first != subNodeIterator->first && !(it2->first == port.firstNode || it2->first == port.secondNode))
+                {
+                    BridgeFinderHelper newHelper(it->first, it2->first, subNodeIterator->first, it2->second, subNodeIterator->second);
+                    possibleBridges.push_back(newHelper);
+                }
+            }
+        }
+    }
+    DeleteDuplicateBranches(possibleBridges);
+
+
+    return false;
+}
+
+void ElectricalGrid::DeleteDuplicateBranches(std::vector<BridgeFinderHelper>& possibleBridges)
+{
+    for (auto it = possibleBridges.begin(); it != possibleBridges.end(); it++)
+    {
+        auto it2 = it;
+        for (; it2 != possibleBridges.end(); it2++)
+        {
+            if (it->firstNode == it2->lastNode && it->middleNode == it2->middleNode && it->lastNode == it2->firstNode)
+            {
+                possibleBridges.erase(it2);
+                break;
+            }
+        }
+    }
+}
+
 std::string_view ElectricalGrid::ltrim(std::string_view str)
 {
     const auto pos(str.find_first_not_of(" \t\n\r\f\v"));
@@ -216,4 +298,22 @@ std::complex<double long> ElectricalGrid::Parallel(std::complex<double long> fir
     result = result / tempValue;
 
     return result;
+}
+
+CircuitComponent::CircuitComponent()
+{
+    type = UNKNOWN_TYPE;
+    identifier = "";
+    firstNode = 0;
+    secondNode = 0;
+    value = 0;
+}
+
+BridgeFinderHelper::BridgeFinderHelper(int FirstNode, int MiddleNode, int LastNode, std::complex<double long> FirstImpedance, std::complex<double long> SecondImpedance)
+{
+    firstNode = FirstNode;
+    middleNode = MiddleNode;
+    lastNode = LastNode;
+    firstImpedance = FirstImpedance;
+    secondImpedance = SecondImpedance;
 }
