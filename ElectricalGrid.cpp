@@ -15,6 +15,8 @@ int main() {
 
     newGrid.SimplifyConnections();
 
+    newGrid.PrintResult();
+
 }
 
 bool ElectricalGrid::FileParser(std::string file)
@@ -386,6 +388,21 @@ void ElectricalGrid::DeleteDuplicateBranches(std::vector<BridgeFinderHelper>& po
                 possibleBridges.erase(it2);
                 break;
             }
+        }
+    }
+}
+
+void ElectricalGrid::PrintResult()
+{
+    if (nodes.size() == 2)
+    {
+        auto it = nodes.begin();
+        auto it2 = nodes.at(1);
+        auto impedance = it->second.begin()->second;
+        auto impedance2 = it2.begin()->second;
+        if (impedance == impedance2)
+        {
+            std::cout << "The impedance of the two pole network is: \n" << std::polar(impedance) << "\n" << std::endl;
         }
     }
 }

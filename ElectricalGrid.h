@@ -70,6 +70,8 @@ public:
 
 	void DeleteDuplicateBranches(std::vector<BridgeFinderHelper>& possibleBridges);
 
+	void PrintResult();
+
 private:
 	bool ReadFileLine(std::string line, int lineNumber);
 
