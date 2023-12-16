@@ -13,6 +13,8 @@ int main() {
 
     newGrid.BridgeLookup();
 
+    newGrid.SimplifyConnections();
+
 }
 
 bool ElectricalGrid::FileParser(std::string file)
@@ -177,6 +179,7 @@ std::complex<double long> ElectricalGrid::CalculateStarMeshResistance(std::compl
     return result;
 }
 
+
 bool ElectricalGrid::SimplifyConnections()
 {
     for (auto it = nodes.begin(); it != nodes.end();)
@@ -231,10 +234,34 @@ void ElectricalGrid::DeleteNode(int i, int j, int k, std::complex<double long>& 
     replace->second.erase(k);
 }
 
+void ElectricalGrid::DeleteNode(int i, int j)
+{
+    auto deleteNode = nodes.find(i);
+    auto deleteConnection = deleteNode->second.find(j);
+    deleteNode->second.erase(deleteConnection);
+}
+
 void ElectricalGrid::DeleteNodeHelper(int i, int j, int k, std::complex<double long>& value)
 {
     DeleteNode(i, j, k, value);
     DeleteNode(j, i, k, value);
+}
+
+void ElectricalGrid::DeleteNodeHelper(int i, int j)
+{
+    DeleteNode(i, j);
+    DeleteNode(j, i);
+}
+
+void ElectricalGrid::DeleteNodeHelper(std::vector<BridgeFinderHelper> it)
+{
+    for (auto it2 = it.begin(); it2 != it.end(); it2++)
+    {
+        for (auto it3 = it2 + 1; it3 != it.end(); it3++)
+        {
+            DeleteNodeHelper(it2->middleNode, it3->middleNode);
+        }
+    }
 }
 
 bool ElectricalGrid::BridgeLookup()
@@ -261,7 +288,55 @@ bool ElectricalGrid::BridgeLookup()
 
     GroupBranchesWithSameNodeTerminals(possibleBranches, branchGroups);
 
+    CheckIfAllNodesPresent(branchGroups);
 
+
+    return false;
+}
+
+bool ElectricalGrid::CheckIfAllNodesPresent(std::vector<std::vector<BridgeFinderHelper>>& branchGroups)
+{
+    for (auto it = branchGroups.begin(); it != branchGroups.end(); it++)
+    {
+        bool deleteConnection = false;
+        for (auto it2 = it->begin(); it2 != it->end(); it2++)
+        {
+            bool RetVal = false;
+            for (auto it3 = nodes.find(it2->middleNode)->second.begin(); it3 != nodes.find(it2->middleNode)->second.end(); it3++)
+            {
+                if (CheckIfNodeInGroup(it, it3))
+                {
+                    RetVal = true;
+                    break;
+                }
+            }
+            if (!RetVal)
+            {
+                deleteConnection = false;
+                break;
+            }
+            deleteConnection = true;
+        }
+        if (deleteConnection)
+        {
+            DeleteNodeHelper(*it);
+        }
+    }
+
+    return false;
+}
+
+bool ElectricalGrid::CheckIfNodeInGroup(std::vector<std::vector<BridgeFinderHelper>>::iterator& it, std::map<int, std::complex<long double>>::iterator& it3)
+{
+    for (auto it4 = it->begin(); it4 != it->end(); it++)
+    {
+        if (it3->first == it4->firstNode ||
+            it3->first == it4->middleNode ||
+            it3->first == it4->lastNode)
+        {
+            return true;
+        }
+    }
     return false;
 }
 
@@ -270,7 +345,6 @@ void ElectricalGrid::GroupBranchesWithSameNodeTerminals(std::vector<BridgeFinder
     for (auto it = possibleBranches.begin(); it != possibleBranches.end(); it++)
     {
         std::vector<BridgeFinderHelper> branchGroup = { *it };
-        bool checkForValidGroup = false;
         auto it2 = it;
 
         for (it2++; it2 != possibleBranches.end();)
@@ -282,7 +356,6 @@ void ElectricalGrid::GroupBranchesWithSameNodeTerminals(std::vector<BridgeFinder
 
                 if (std::abs(firstRatio) == std::abs(secondRatio))
                 {
-                    checkForValidGroup = true;
                     branchGroup.push_back(*it2);
                     it2 = possibleBranches.erase(it2);
                     continue;
@@ -290,7 +363,7 @@ void ElectricalGrid::GroupBranchesWithSameNodeTerminals(std::vector<BridgeFinder
             }
             it2++;
         }
-        if (checkForValidGroup) {
+        if (branchGroup.size() > 2) {
             branchGroups.push_back(branchGroup);
         }
     }

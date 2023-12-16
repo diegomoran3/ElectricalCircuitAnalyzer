@@ -60,6 +60,10 @@ public:
 
 	bool BridgeLookup();
 
+	bool CheckIfAllNodesPresent(std::vector<std::vector<BridgeFinderHelper>>& branchGroups);
+
+	bool CheckIfNodeInGroup(std::vector<std::vector<BridgeFinderHelper>>::iterator& it, std::map<int, std::complex<long double>>::iterator& it3);
+
 	void GroupBranchesWithSameNodeTerminals(std::vector<BridgeFinderHelper>& possibleBranches, std::vector<std::vector<BridgeFinderHelper>>& branchGroups);
 
 	bool checkBranchTerminals(BridgeFinderHelper it, BridgeFinderHelper it2);
@@ -81,7 +85,14 @@ private:
 	std::complex<double long> CalculateStarMeshResistance(std::complex<double long> i, std::complex<double long> j, std::complex<double long> k);
 
 	/// <summary>
-	/// Helper function to delete old node connections
+	/// Delete connection between 2 nodes without replacing it
+	/// </summary>
+	/// <param name="i"></param>
+	/// <param name="j"></param>
+	void DeleteNode(int i, int j);
+
+	/// <summary>
+	/// Helper function to delete old node and replace with new connections
 	/// </summary>
 	/// <param i="First node which will get new connection"></param>
 	/// <param j="Node that replaced the old node connection"></param>
@@ -90,6 +101,8 @@ private:
 	void DeleteNode(int i, int j, int k, std::complex<double long>& value);
 
 	void DeleteNodeHelper(int i, int j, int k, std::complex<double long>& value);
+	void DeleteNodeHelper(int i, int j);
+	void DeleteNodeHelper(std::vector<BridgeFinderHelper> it);
 
 
 	/// <summary>
