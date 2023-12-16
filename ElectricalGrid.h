@@ -4,9 +4,8 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <set>
 #include <complex>
-#include <cmath>
+#include <array>
 
 
 # define M_PI           3.14159265358979323846  /* pi */
@@ -39,6 +38,8 @@ struct CircuitComponent
 
 struct BridgeFinderHelper {
 
+	BridgeFinderHelper();
+
 	BridgeFinderHelper(int FirstNode, int MiddleNode, int LastNode, 
 		std::complex<double long> FirstImpedance, 
 		std::complex<double long> SecondImpedance);
@@ -58,6 +59,10 @@ public:
 	bool SimplifyConnections();
 
 	bool BridgeLookup();
+
+	void GroupBranchesWithSameNodeTerminals(std::vector<BridgeFinderHelper>& possibleBranches, std::vector<std::vector<BridgeFinderHelper>>& branchGroups);
+
+	bool checkBranchTerminals(BridgeFinderHelper it, BridgeFinderHelper it2);
 
 	void DeleteDuplicateBranches(std::vector<BridgeFinderHelper>& possibleBridges);
 

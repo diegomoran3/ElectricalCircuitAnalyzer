@@ -239,7 +239,8 @@ void ElectricalGrid::DeleteNodeHelper(int i, int j, int k, std::complex<double l
 
 bool ElectricalGrid::BridgeLookup()
 {
-    std::vector<BridgeFinderHelper> possibleBridges;
+    std::vector<BridgeFinderHelper> possibleBranches;
+    std::vector<std::vector<BridgeFinderHelper>> branchGroups;
     for (auto it = nodes.begin(); it != nodes.end(); it++)
     {
         for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++)
@@ -250,15 +251,54 @@ bool ElectricalGrid::BridgeLookup()
                 if (it->first != subNodeIterator->first && !(it2->first == port.firstNode || it2->first == port.secondNode))
                 {
                     BridgeFinderHelper newHelper(it->first, it2->first, subNodeIterator->first, it2->second, subNodeIterator->second);
-                    possibleBridges.push_back(newHelper);
+                    possibleBranches.push_back(newHelper);
                 }
             }
         }
     }
-    DeleteDuplicateBranches(possibleBridges);
+
+    DeleteDuplicateBranches(possibleBranches);
+
+    GroupBranchesWithSameNodeTerminals(possibleBranches, branchGroups);
 
 
     return false;
+}
+
+void ElectricalGrid::GroupBranchesWithSameNodeTerminals(std::vector<BridgeFinderHelper>& possibleBranches, std::vector<std::vector<BridgeFinderHelper>>& branchGroups)
+{
+    for (auto it = possibleBranches.begin(); it != possibleBranches.end(); it++)
+    {
+        std::vector<BridgeFinderHelper> branchGroup = { *it };
+        bool checkForValidGroup = false;
+        auto it2 = it;
+
+        for (it2++; it2 != possibleBranches.end();)
+        {
+            if (it->firstNode == it2->firstNode && it->lastNode == it2->lastNode)
+            {
+                std::complex firstRatio = (it->firstImpedance / it->secondImpedance);
+                std::complex secondRatio = (it2->firstImpedance / it2->secondImpedance);
+
+                if (std::abs(firstRatio) == std::abs(secondRatio))
+                {
+                    checkForValidGroup = true;
+                    branchGroup.push_back(*it2);
+                    it2 = possibleBranches.erase(it2);
+                    continue;
+                }
+            }
+            it2++;
+        }
+        if (checkForValidGroup) {
+            branchGroups.push_back(branchGroup);
+        }
+    }
+}
+
+bool ElectricalGrid::checkBranchTerminals(BridgeFinderHelper it, BridgeFinderHelper it2)
+{
+    return it.firstNode == it2.firstNode && it.lastNode == it2.lastNode;
 }
 
 void ElectricalGrid::DeleteDuplicateBranches(std::vector<BridgeFinderHelper>& possibleBridges)
@@ -307,6 +347,10 @@ CircuitComponent::CircuitComponent()
     firstNode = 0;
     secondNode = 0;
     value = 0;
+}
+
+BridgeFinderHelper::BridgeFinderHelper() : firstNode(0), middleNode(0), lastNode(0), firstImpedance(), secondImpedance()
+{
 }
 
 BridgeFinderHelper::BridgeFinderHelper(int FirstNode, int MiddleNode, int LastNode, std::complex<double long> FirstImpedance, std::complex<double long> SecondImpedance)
