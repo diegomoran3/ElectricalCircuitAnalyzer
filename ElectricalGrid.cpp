@@ -3,7 +3,7 @@
 int main() {
     ElectricalGrid newGrid;
 
-    newGrid.FileParser("C:\\Users\\diego\\OneDrive\\Escritorio\\r_cube.txt");
+    newGrid.FileParser("C:\\Users\\diego\\OneDrive\\Escritorio\\tp1.txt");
 
     newGrid.NodeConstructor();
 
@@ -45,7 +45,7 @@ bool ElectricalGrid::NodeConstructor()
 {
     for (auto it = components.begin(); it != components.end(); it++)
     {
-        std::complex<double long> componentValue = CalculateComponentValue(*it);
+        std::complex<long double> componentValue = CalculateComponentValue(*it);
         CreateNodeConnections((*it).firstNode, (*it).secondNode, componentValue);
         CreateNodeConnections((*it).secondNode, (*it).firstNode, componentValue);
     }
@@ -109,7 +109,7 @@ bool ElectricalGrid::SaveParametersToComponent(std::string& line, ComponentParam
     return true;
 }
 
-bool ElectricalGrid::CreateNodeConnections(int firstNode, int secondNode, std::complex<double long> value)
+bool ElectricalGrid::CreateNodeConnections(int firstNode, int secondNode, std::complex<long double> value)
 {
 
     auto nodeMapIterator = nodes.find(firstNode);
@@ -125,7 +125,7 @@ bool ElectricalGrid::CreateNodeConnections(int firstNode, int secondNode, std::c
     }
     else
     {
-        std::map<int, std::complex<double long>>newSet;
+        std::map<int, std::complex<long double>>newSet;
         newSet[secondNode] = value;
         nodes[firstNode] = newSet;
     }
@@ -133,9 +133,9 @@ bool ElectricalGrid::CreateNodeConnections(int firstNode, int secondNode, std::c
     return true;
 }
 
-std::complex<double long> ElectricalGrid::CalculateComponentValue(CircuitComponent component)
+std::complex<long double> ElectricalGrid::CalculateComponentValue(CircuitComponent component)
 {
-    std::complex<double long> impedance;
+    std::complex<long double> impedance;
     switch (component.type) {
     case RESISTOR: impedance.real(component.value); break;
     case INDUCTOR: impedance.imag(2 * M_PI * port.value * component.value); break;
@@ -144,12 +144,12 @@ std::complex<double long> ElectricalGrid::CalculateComponentValue(CircuitCompone
     return impedance;
 }
 
-bool ElectricalGrid::StarMeshTransform(std::map<int, std::map<int, std::complex<double long>>>::iterator node)
+bool ElectricalGrid::StarMeshTransform(std::map<int, std::map<int, std::complex<long double>>>::iterator node)
 {
     int count = 0;
     int connectedNodes[3];
-    std::complex<double long> resistances[3];
-    std::complex<double long> newResistanceValues[3];
+    std::complex<long double> resistances[3];
+    std::complex<long double> newResistanceValues[3];
     for (auto it = node->second.begin(); it != node->second.end(); it++) {
         connectedNodes[count] = it->first;
         resistances[count++] = it->second;
@@ -173,9 +173,9 @@ void ElectricalGrid::CalculateNewDeltaResistances(std::complex<long double>  new
     newResistanceValues[2] = CalculateStarMeshResistance(resistances[2], resistances[0], resistances[1]);
 }
 
-std::complex<double long> ElectricalGrid::CalculateStarMeshResistance(std::complex<double long> i, std::complex<double long> j, std::complex<double long> k)
+std::complex<long double> ElectricalGrid::CalculateStarMeshResistance(std::complex<long double> i, std::complex<long double> j, std::complex<long double> k)
 {
-    std::complex<double long> result = (i * j) + (i * k) + (j * k);
+    std::complex<long double> result = (i * j) + (i * k) + (j * k);
     result = result / i;
 
     return result;
@@ -193,7 +193,7 @@ bool ElectricalGrid::SimplifyConnections()
         }
         else if (it->second.size() == 2)
         {
-            std::complex<double long> addition;
+            std::complex<long double> addition;
             int nodeNumber[2] = { 0, 0 };
             int count = 0;
             for (auto sum = it->second.begin(); sum != it->second.end(); sum++, count++)
@@ -221,7 +221,7 @@ bool ElectricalGrid::SimplifyConnections()
     return true;
 }
 
-void ElectricalGrid::DeleteNode(int i, int j, int k, std::complex<double long>& addition)
+void ElectricalGrid::DeleteNode(int i, int j, int k, std::complex<long double>& addition)
 {
     auto replace = nodes.find(i);
     auto newConnection = replace->second.find(j);
@@ -243,7 +243,7 @@ void ElectricalGrid::DeleteNode(int i, int j)
     deleteNode->second.erase(deleteConnection);
 }
 
-void ElectricalGrid::DeleteNodeHelper(int i, int j, int k, std::complex<double long>& value)
+void ElectricalGrid::DeleteNodeHelper(int i, int j, int k, std::complex<long double>& value)
 {
     DeleteNode(i, j, k, value);
     DeleteNode(j, i, k, value);
@@ -397,12 +397,12 @@ void ElectricalGrid::PrintResult()
     if (nodes.size() == 2)
     {
         auto it = nodes.begin();
-        auto it2 = nodes.at(1);
+        auto it2 = std::next(it);
         auto impedance = it->second.begin()->second;
-        auto impedance2 = it2.begin()->second;
+        auto impedance2 = it2->second.begin()->second;
         if (impedance == impedance2)
         {
-            std::cout << "The impedance of the two pole network is: \n" << std::polar(impedance) << "\n" << std::endl;
+            std::cout << "The impedance of the two pole network is: \n" << std::polar(std::abs(impedance)) << "\n" << std::endl;
         }
     }
 }
@@ -421,10 +421,10 @@ std::string_view ElectricalGrid::rtrim(std::string_view str)
     return str;
 }
 
-std::complex<double long> ElectricalGrid::Parallel(std::complex<double long> first, std::complex<double long> second)
+std::complex<long double> ElectricalGrid::Parallel(std::complex<long double> first, std::complex<long double> second)
 {
-    std::complex<double long> tempValue = first + second;
-    std::complex<double long> result = first * second;
+    std::complex<long double> tempValue = first + second;
+    std::complex<long double> result = first * second;
     result = result / tempValue;
 
     return result;
@@ -443,7 +443,7 @@ BridgeFinderHelper::BridgeFinderHelper() : firstNode(0), middleNode(0), lastNode
 {
 }
 
-BridgeFinderHelper::BridgeFinderHelper(int FirstNode, int MiddleNode, int LastNode, std::complex<double long> FirstImpedance, std::complex<double long> SecondImpedance)
+BridgeFinderHelper::BridgeFinderHelper(int FirstNode, int MiddleNode, int LastNode, std::complex<long double> FirstImpedance, std::complex<long double> SecondImpedance)
 {
     firstNode = FirstNode;
     middleNode = MiddleNode;

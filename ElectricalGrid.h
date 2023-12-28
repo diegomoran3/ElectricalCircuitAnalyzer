@@ -33,7 +33,7 @@ struct CircuitComponent
 	std::string identifier;
 	int firstNode;
 	int secondNode;
-	double long value;
+	long double value;
 };
 
 struct BridgeFinderHelper {
@@ -41,14 +41,14 @@ struct BridgeFinderHelper {
 	BridgeFinderHelper();
 
 	BridgeFinderHelper(int FirstNode, int MiddleNode, int LastNode, 
-		std::complex<double long> FirstImpedance, 
-		std::complex<double long> SecondImpedance);
+		std::complex<long double> FirstImpedance, 
+		std::complex<long double> SecondImpedance);
 
 	int firstNode;
 	int middleNode;
 	int lastNode;
-	std::complex<double long> firstImpedance;
-	std::complex<double long> secondImpedance;
+	std::complex<long double> firstImpedance;
+	std::complex<long double> secondImpedance;
 	};
 
 class ElectricalGrid
@@ -77,14 +77,14 @@ private:
 
 	bool SaveParametersToComponent(std::string& line, ComponentParameter Parameter, CircuitComponent& Component);
 
-	bool CreateNodeConnections(int firstNode, int secondNode, std::complex<double long> value);
-	std::complex<double long> CalculateComponentValue(CircuitComponent component);
+	bool CreateNodeConnections(int firstNode, int secondNode, std::complex<long double> value);
+	std::complex<long double> CalculateComponentValue(CircuitComponent component);
 
-	bool StarMeshTransform(std::map<int, std::map<int, std::complex<double long>>>::iterator node);
+	bool StarMeshTransform(std::map<int, std::map<int, std::complex<long double>>>::iterator node);
 
 	void CalculateNewDeltaResistances(std::complex<long double>  newResistanceValues[3], std::complex<long double>  resistances[3]);
 
-	std::complex<double long> CalculateStarMeshResistance(std::complex<double long> i, std::complex<double long> j, std::complex<double long> k);
+	std::complex<long double> CalculateStarMeshResistance(std::complex<long double> i, std::complex<long double> j, std::complex<long double> k);
 
 	/// <summary>
 	/// Delete connection between 2 nodes without replacing it
@@ -100,9 +100,9 @@ private:
 	/// <param j="Node that replaced the old node connection"></param>
 	/// <param k="">Old node to be replaced with new connection</param>
 	/// <param value="Value of the new connection"></param>
-	void DeleteNode(int i, int j, int k, std::complex<double long>& value);
+	void DeleteNode(int i, int j, int k, std::complex<long double>& value);
 
-	void DeleteNodeHelper(int i, int j, int k, std::complex<double long>& value);
+	void DeleteNodeHelper(int i, int j, int k, std::complex<long double>& value);
 	void DeleteNodeHelper(int i, int j);
 	void DeleteNodeHelper(std::vector<BridgeFinderHelper> it);
 
@@ -126,13 +126,13 @@ private:
 	/// <param name="First impedance"></param>
 	/// <param name="Second impedance"></param>
 	/// <returns>Parallel impedance</returns>
-	std::complex<double long> Parallel(std::complex<double long> first, std::complex<double long> second);
+	std::complex<long double> Parallel(std::complex<long double> first, std::complex<long double> second);
 
 	CircuitComponent port;
 
 	// Ordered map in which the key is the node number,
 	// in the map value
-	std::map<int, std::map<int, std::complex<double long>>> nodes;
+	std::map<int, std::map<int, std::complex<long double>>> nodes;
 	std::vector<CircuitComponent> components;
 };
 
