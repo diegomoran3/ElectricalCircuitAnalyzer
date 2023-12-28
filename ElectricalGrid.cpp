@@ -1,17 +1,17 @@
 #include "ElectricalGrid.h"
 
 int main() {
+
+    std::string fileName;
+    std::cout << "Enter the path of the electrical grid file: ";
+    std::cin >> fileName;
+    std::cout << std::endl;
+
     ElectricalGrid newGrid;
 
-    newGrid.FileParser("C:\\Users\\diego\\OneDrive\\Escritorio\\tp1.txt");
+    newGrid.FileParser(fileName);
 
     newGrid.NodeConstructor();
-
-    newGrid.SimplifyConnections();
-
-    newGrid.SimplifyConnections();
-
-    newGrid.BridgeLookup();
 
     newGrid.SimplifyConnections();
 
@@ -36,6 +36,7 @@ bool ElectricalGrid::FileParser(std::string file)
     else
     {
         std::cout << "Unable to open " << file << std::endl;
+        return false;
     }
 
     return true;
@@ -49,7 +50,6 @@ bool ElectricalGrid::NodeConstructor()
         CreateNodeConnections((*it).firstNode, (*it).secondNode, componentValue);
         CreateNodeConnections((*it).secondNode, (*it).firstNode, componentValue);
     }
-    nodes;
     return false;
 }
 
@@ -184,40 +184,54 @@ std::complex<long double> ElectricalGrid::CalculateStarMeshResistance(std::compl
 
 bool ElectricalGrid::SimplifyConnections()
 {
-    for (auto it = nodes.begin(); it != nodes.end();)
-    {
-        if (it->first == port.firstNode || it->first == port.secondNode)
+    bool circuitChanged = false;
+    do {
+        circuitChanged = false;
+        for (auto it = nodes.begin(); it != nodes.end();)
         {
-            it++;
-            continue;
-        }
-        else if (it->second.size() == 2)
-        {
-            std::complex<long double> addition;
-            int nodeNumber[2] = { 0, 0 };
-            int count = 0;
-            for (auto sum = it->second.begin(); sum != it->second.end(); sum++, count++)
+            if (it->first == port.firstNode || it->first == port.secondNode)
             {
-                addition = addition + sum->second;
-                nodeNumber[count] = sum->first;
+                it++;
+                continue;
             }
+            if (it->second.size() == 1 && !(it->first == port.firstNode || it->first == port.secondNode))
+            {
+                DeleteNodeHelper(it->first, it->second.begin()->first);
+                it = nodes.erase(it);
+            }
+            else if (it->second.size() == 2)
+            {
+                std::complex<long double> addition;
+                int nodeNumber[2] = { 0, 0 };
+                int count = 0;
+                for (auto sum = it->second.begin(); sum != it->second.end(); sum++, count++)
+                {
+                    addition = addition + sum->second;
+                    nodeNumber[count] = sum->first;
+                }
 
-            DeleteNode(nodeNumber[0], nodeNumber[1], it->first, addition);
-            DeleteNode(nodeNumber[1], nodeNumber[0], it->first, addition);
+                DeleteNode(nodeNumber[0], nodeNumber[1], it->first, addition);
+                DeleteNode(nodeNumber[1], nodeNumber[0], it->first, addition);
 
-            it = nodes.erase(it);
+                it = nodes.erase(it);
+                circuitChanged = true;
+            }
+            else if (it->second.size() == 3)
+            {
+                StarMeshTransform(it);
+                it = nodes.erase(it);
+                it = nodes.begin();
+                circuitChanged = true;
+            }
+            else {
+                it++;
+            }
         }
-        else if (it->second.size() == 3)
+        if (circuitChanged == false)
         {
-            StarMeshTransform(it);
-            it = nodes.erase(it);
-            it = nodes.begin();
+            circuitChanged = BridgeLookup();
         }
-        else {
-            it++;
-        }
-    }
-    nodes;
+    } while (circuitChanged);
     return true;
 }
 
@@ -268,6 +282,7 @@ void ElectricalGrid::DeleteNodeHelper(std::vector<BridgeFinderHelper> it)
 
 bool ElectricalGrid::BridgeLookup()
 {
+    bool success = false;
     std::vector<BridgeFinderHelper> possibleBranches;
     std::vector<std::vector<BridgeFinderHelper>> branchGroups;
     for (auto it = nodes.begin(); it != nodes.end(); it++)
@@ -290,14 +305,15 @@ bool ElectricalGrid::BridgeLookup()
 
     GroupBranchesWithSameNodeTerminals(possibleBranches, branchGroups);
 
-    CheckIfAllNodesPresent(branchGroups);
+    success = CheckIfAllNodesPresent(branchGroups);
 
 
-    return false;
+    return success;
 }
 
 bool ElectricalGrid::CheckIfAllNodesPresent(std::vector<std::vector<BridgeFinderHelper>>& branchGroups)
 {
+    bool success = false;
     for (auto it = branchGroups.begin(); it != branchGroups.end(); it++)
     {
         bool deleteConnection = false;
@@ -322,10 +338,11 @@ bool ElectricalGrid::CheckIfAllNodesPresent(std::vector<std::vector<BridgeFinder
         if (deleteConnection)
         {
             DeleteNodeHelper(*it);
+            success = true;
         }
     }
 
-    return false;
+    return success;
 }
 
 bool ElectricalGrid::CheckIfNodeInGroup(std::vector<std::vector<BridgeFinderHelper>>::iterator& it, std::map<int, std::complex<long double>>::iterator& it3)
@@ -402,7 +419,9 @@ void ElectricalGrid::PrintResult()
         auto impedance2 = it2->second.begin()->second;
         if (impedance == impedance2)
         {
-            std::cout << "The impedance of the two pole network is: \n" << std::polar(std::abs(impedance)) << "\n" << std::endl;
+            std::cout << "The impedance of the two pole network is: \n" << 
+                "Cartesian form: " << impedance << "\n" <<
+                "Polar form:     (" << std::abs(impedance) << "," << std::arg(impedance) << ")" << std::endl;
         }
     }
 }
